@@ -9,7 +9,7 @@ Usage:
 	If you have yet to compile the program, then make sure you have at least the
 	1.6 JDK installed and run:
 	
-		javac ButButcher.java
+		javac BitButcher.java
 	
 	Once it has been compiled, simply run:
 	
