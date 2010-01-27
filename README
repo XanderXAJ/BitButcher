@@ -1,4 +1,4 @@
-Bit Butcher -- An NDS ROM Trimmer in Java
+BitButcher -- An NDS ROM Trimmer in Java
 -----------------------------------------
 
 Notice:
@@ -24,6 +24,11 @@ Options:
 	In particular:
 		+ Change ROM buffer size
 
+FAQ:
+	Q: Where did the name come from?
+	A: A friend suggested that I rename the program (which was originally just
+		called "Trimmer") to this.  Turns out I liked it.
+	
 About:
 	BitButcher has been (so far) written entirely by Alex Palmer, also known
 	as XanderXAJ.  If you like what you see, be sure to check out my personal
