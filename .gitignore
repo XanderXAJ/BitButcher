@@ -1,0 +1,4 @@
+# Hide temp files -- we already have version control!
+*~
+# Hide Java class files -- peeps should compile their own
+*.class
