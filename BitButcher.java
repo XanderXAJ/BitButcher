@@ -4,8 +4,29 @@ import java.io.RandomAccessFile;
 import java.util.HashSet;
 
 /**
+	BitButcher
 	Small ROM trimmer for removing useless data from Nintendo DS ROMs.
 	
+	Legal:
+	Copyright 2010 Alex Palmer.
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+	See the COPYING file for the full license.
+	
+	
+	Explanation:
 	Untrimmed ROMs contain a continuous sequence of 1s (ones) in their binary form.
 	
 	This data only exists because the original catridges come in powers of two,

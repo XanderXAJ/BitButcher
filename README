@@ -8,9 +8,9 @@ Notice:
 Usage:
 	If you have yet to compile the program, then make sure you have at least the
 	1.6 JDK installed and run:
-		
+	
 		javac ButButcher.java
-		
+	
 	Once it has been compiled, simply run:
 	
 		java BitButcher rom1 rom2 romN...
@@ -28,5 +28,21 @@ About:
 	BitButcher has been (so far) written entirely by Alex Palmer, also known
 	as XanderXAJ.  If you like what you see, be sure to check out my personal
 	website at http://xanderx.com!
-	
-	
+
+Legal:
+	Copyright 2010 Alex Palmer.
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+	See the COPYING file for the full license.
