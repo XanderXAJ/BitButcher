@@ -1,0 +1,32 @@
+Bit Butcher -- An NDS ROM Trimmer in Java
+-----------------------------------------
+
+Notice:
+	Be sure to back up any images you feed through this program, just in case
+	something does go wrong.  At this stage, there's always that chance!
+
+Usage:
+	If you have yet to compile the program, then make sure you have at least the
+	1.6 JDK installed and run:
+		
+		javac ButButcher.java
+		
+	Once it has been compiled, simply run:
+	
+		java BitButcher rom1 rom2 romN...
+	
+	This program modifies the original files, so make sure you have copies
+	just in case.	
+
+Options:
+	None yet.  But there are plans!
+	
+	In particular:
+		+ Change ROM buffer size
+
+About:
+	BitButcher has been (so far) written entirely by Alex Palmer, also known
+	as XanderXAJ.  If you like what you see, be sure to check out my personal
+	website at http://xanderx.com!
+	
+	
