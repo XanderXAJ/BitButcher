@@ -31,26 +31,30 @@ public class BitButcher {
 	
 	
 	public static void main(String[] args) {
-		final HashSet<File> files = new HashSet<File>();
+		if (args.length == 0) {
+			System.out.println("Usage: java BitButcher rom1 rom2 romN...");
+		} else {
+			final HashSet<File> files = new HashSet<File>();
 		
-		// Create a list of unique, existing files from arguments
-		// Read in arguments and create File objects
-		for (String arg : args) {
-			File file = new File(arg);
+			// Create a list of unique, existing files from arguments
+			// Read in arguments and create File objects
+			for (String arg : args) {
+				File file = new File(arg);
 			
-			if (file.exists()) {
-				files.add(file);
+				if (file.exists()) {
+					files.add(file);
+				}
 			}
-		}
 		
-		// Trim each file
-		long totalDifference = 0l;
-		for (File file : files) {
-			totalDifference = totalDifference + trimRom(file);
-		}
+			// Trim each file
+			long totalDifference = 0l;
+			for (File file : files) {
+				totalDifference = totalDifference + trimRom(file);
+			}
 		
-		// Output total difference made
-		System.out.println("Total difference: " + totalDifference);
+			// Output total difference made
+			System.out.println("Total difference: " + totalDifference);
+		}
 	}
 	
 	/**	Trims the passed ROM to its minimum possible size.
