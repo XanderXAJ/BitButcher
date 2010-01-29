@@ -1,3 +1,5 @@
+package com.xanderx.bitbutcher;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -35,23 +37,23 @@ import java.util.HashSet;
 */
 public class BitButcher {
 	/** Minimum length of ones required to be deemed padding */
-	private static int BUFFER = 1024 * 32; // 32KB
+	private static final int BUFFER = 1024 * 32; // 32KB
 	
-	private static byte ALL_ONES = -1;
+	private static final byte ALL_ONES = -1; // Two's complement, mmm
 	
-	private static String COMPRESSED_SUFFIX = " trim";
-	private static String INPUT_MODE = "rw";
-	private static String FILE_NAME_DELIMITER = ".";
+	private static final String COMPRESSED_SUFFIX = " trim";
+	private static final String INPUT_MODE = "rw";
+	private static final String FILE_NAME_DELIMITER = ".";
 	
-	private static String PROGRESS_INDICATOR = ".";
-	private static int PROGRESS_INDICATOR_INTERVAL = 1024 * 1024; // 1MB
-	private static int PROGRESS_INDICATOR_BREAK_INTERVAL = PROGRESS_INDICATOR_INTERVAL * 32; // 32MB
+	private static final String PROGRESS_INDICATOR = ".";
+	private static final int PROGRESS_INDICATOR_INTERVAL = 1024 * 1024; // 1MB
+	private static final int PROGRESS_INDICATOR_BREAK_INTERVAL = PROGRESS_INDICATOR_INTERVAL * 32; // 32MB
 	
 	private static long pNumberOfChunks;
 	private static RandomAccessFile pStream;
 	
 	
-	public static void main(String[] args) {
+	public static void main(final String[] args) {
 		if (args.length == 0) {
 			System.out.println("Usage: java BitButcher rom1 rom2 romN...");
 		} else {
@@ -81,54 +83,50 @@ public class BitButcher {
 	/**	Trims the passed ROM to its minimum possible size.
 		@return The difference between the original size and the new size
 	*/
-	private static long trimRom(File rom) {
+	private static long trimRom(final File rom) {
 		long difference = 0l;
 		try {
 			pStream = new RandomAccessFile(rom, INPUT_MODE);
-				try {
-					// Seek around, seek around, seek around now
-					System.out.println("Reading " + rom.getName() + ":");
-					
-					/*	Do a sort-of binary search:
-						Imagine the file is made of chunks of size BUFFER.  Work out the number of chunks in a given file.
-						The entire file is the first active area.
-						1) Take the middle chunk of the active area and test it for ones.
-						2) If the are BUFFER bytes of ones, make the first half the new focus.
-						3) If there are not BUFFER bytes of ones, make the second half the new focus.
-						4) Go back to step 1 and repeat until the first block all made up of ones is found.
-						5) Scan the previous block one byte at a time and find exactly where the dummy data begins.
-						6) Truncate the file to this point.
-					*/
-					
-					// Find number of chunks in file
-					pNumberOfChunks = (long) Math.ceil((double)pStream.length() / (double)BUFFER);
-					System.out.println("Total number of chunks: " + pNumberOfChunks);
-					
-					final long lastSaneByte = findLastSaneByte(0l, pNumberOfChunks);
-					difference = lastSaneByte - pStream.length();
-					
-					// Resize ROM
-					System.out.println("Resizing " + rom.getName() + ":");
-					System.out.println("Previously: " + pStream.length() + ", Now: " + lastSaneByte + ", Difference: " + difference);
-					pStream.setLength(lastSaneByte);
-					
-					// Close file handle
-					pStream.close();
-					
-					System.out.println("Done");
-					System.out.println();
-					
-					return difference;
-				}
-				catch (IOException e) {
-					System.err.println("BOOM.  Something's gone wrong.  Check you have write permissions for this file:");
-					System.err.println(rom.getPath());
-				}
-			/*}
+			try {
+				// Seek around, seek around, seek around now
+				System.out.println("Reading " + rom.getName() + ":");
+				
+				/*	Do a sort-of binary search:
+					Imagine the file is made of chunks of size BUFFER.
+					Work out the number of chunks in a given file.
+					The entire file is the first active area.
+					1) Take the middle chunk of the active area and test it for ones.
+					2) If the are BUFFER bytes of ones, make the first half the new focus.
+					3) If there are not BUFFER bytes of ones, make the second half the new focus.
+					4) Go back to step 1 and repeat until the first block all made up of ones is found.
+					5) Scan the previous block one byte at a time and find exactly where the dummy data begins.
+					6) Truncate the file to this point.
+				*/
+				
+				// Find number of chunks in file
+				pNumberOfChunks = (long) Math.ceil((double)pStream.length() / (double)BUFFER);
+				System.out.println("Total number of chunks: " + pNumberOfChunks);
+				
+				final long lastSaneByte = findLastSaneByte(0l, pNumberOfChunks);
+				difference = lastSaneByte - pStream.length();
+				
+				// Resize ROM
+				System.out.println("Resizing " + rom.getName() + ":");
+				System.out.println("Previously: " + pStream.length() + ", Now: " + lastSaneByte + ", Difference: " + difference);
+				pStream.setLength(lastSaneByte);
+				
+				// Close file handle
+				pStream.close();
+				
+				System.out.println("Done");
+				System.out.println();
+				
+				return difference;
+			}
 			catch (IOException e) {
-				System.err.println("I can't write.  Ah.  Check you have write permissions in this folder.");
-				System.err.println(rom.getParent());
-			}*/
+				System.err.println("BOOM.  Something's gone wrong.  Check you have write permissions for this file:");
+				System.err.println(rom.getPath());
+			}
 		}
 		catch (IOException e) {
 			System.err.println("I can't read the file.  That sucks.");
@@ -136,7 +134,7 @@ public class BitButcher {
 		return difference;
 	}
 	
-	private static long findLastSaneByte(long beginningChunk, long endChunk) throws IOException {
+	private static long findLastSaneByte(final long beginningChunk, final long endChunk) throws IOException {
 		long lastSaneByte;
 		
 		if (beginningChunk == endChunk) {
@@ -183,7 +181,7 @@ public class BitButcher {
 		
 	 	@return Whether the byte array is all made up of ones
 	*/
-	private static boolean isAllOnes(byte[] bytes) {
+	private static boolean isAllOnes(final byte[] bytes) {
 		boolean allOnes = true;
 		
 		for (int i = 0; allOnes && i < bytes.length; i++) {
@@ -196,7 +194,7 @@ public class BitButcher {
 	/**	
 		
 	*/
-	private static int deeplyScanForLastSaneByte(byte[] bytes) {
+	private static int deeplyScanForLastSaneByte(final byte[] bytes) {
 		int lastSaneByte = 0;
 		
 		for (int i = 0; i < bytes.length; i++) {
@@ -210,11 +208,11 @@ public class BitButcher {
 		return lastSaneByte;
 	}
 	
-	private static boolean isLastChunk(long chunk) {
+	private static boolean isLastChunk(final long chunk) {
 		return chunk == pNumberOfChunks - 1;
 	}
 	
-	private static byte[] getCorrectSizeByteArray(long chunk) throws IOException {
+	private static byte[] getCorrectSizeByteArray(final long chunk) throws IOException {
 		// What happens if the last chunk is the size of the BUFFER?  0.  Snap.
 		//System.out.println("File size: " + pStream.length());
 		//System.out.println("Final chunk size: " + (int)(pStream.length() % BUFFER));
