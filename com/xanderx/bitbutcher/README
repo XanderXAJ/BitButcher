@@ -9,11 +9,12 @@ Usage:
 	If you have yet to compile the program, then make sure you have at least the
 	1.6 JDK installed and run:
 	
-		javac BitButcher.java
+		javac com/xanderx/bitbutcher/*.java
+		jar cfm BitButcher.jar com/xanderx/bitbutcher/manifest com/xanderx/bitbutcher/*.class
 	
 	Once it has been compiled, simply run:
 	
-		java BitButcher rom1 rom2 romN...
+		java -jar BitButcher.jar rom1 rom2 romN...
 	
 	This program modifies the original files, so make sure you have copies
 	just in case.	
