@@ -14,17 +14,38 @@ Usage:
 	
 	Once it has been compiled, simply run:
 	
-		java -jar BitButcher.jar rom1 rom2 romN...
+		java -jar BitButcher.jar [-pi] rom1 rom2 romN...
 	
 	This program modifies the original files, so make sure you have copies
-	just in case.	
+	just in case.
+	
+	Unless you have a particular reason to do so, it is usually best to run
+	BitButcher with no options.
+
+Terms:
+	AEO
+		Application End Offset — A special part of the Nintendo DS's ROM header
+		that specifies how large the data stored in the ROM is (regardless of
+		the size of the file).  BitButcher uses this information to quickly
+		trim a file.
+		
+		Care must be taken, however, as for some reason games that have wi-fi
+		support are often 136 bytes larger than the value specified in the AEO.
+		BitButcher can cope with these instances.
+		
+		Additionally, the ROM header could be bad (due to a bad dump or cartridge),
+		meaning anything could happen!  Running BitButcher with the -pi options
+		will help out here.
 
 Options:
-	None yet.  But there are plans!
+	-p	Paranoid.  Makes BitButcher scan from the end of the file to verify no
+		useful data will be removed.  ROM will be trimmed to the first point
+		useful data is found or to the size specified in the AEO, whichever is larger.
+		
+	-i	Ignore AEO. Only useful with -p. Only use this if the ROM header is bad.
+		Forces BitButcher to ignore the AEO and just scan from the end of the file
+		for useful data.  ROM will be trimmed to the first point useful data is found.
 	
-	In particular:
-		+ Change ROM buffer size
-
 FAQ:
 	Q: Where did the name come from?
 	A: A friend suggested that I rename the program (which was originally just

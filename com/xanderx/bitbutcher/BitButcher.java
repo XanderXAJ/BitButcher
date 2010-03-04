@@ -59,11 +59,12 @@ public class BitButcher {
 	private static long pNumberOfChunks;
 	private static RandomAccessFile pStream;
 	private static boolean pParanoid = false;
+	private static boolean pIgnoreAeo = false;
 	
 	
 	public static void main(final String[] args) {
 		if (args.length == 0) {
-			System.out.println("Usage: java BitButcher [-p] rom1 rom2 romN...");
+			System.out.println("Usage: java BitButcher [-pi] rom1 rom2 romN...");
 		} else {
 			final HashSet<File> files = new HashSet<File>();
 			
@@ -73,6 +74,10 @@ public class BitButcher {
 				if (arg.equals("-p")) {
 					System.out.println("Running in Paranoia Mode..!");
 					pParanoid = true;
+				} else if (arg.equals("-pi")) {
+					System.out.println("Running in Paranoia Mode, also ignoring the AEO..!");
+					pParanoid = true;
+					pIgnoreAeo = true;
 				} else {
 					File file = new File(arg);
 			
@@ -104,18 +109,56 @@ public class BitButcher {
 				// Seek around, seek around, seek around now
 				System.out.println("Reading " + rom.getName() + ":");
 				
-				long lastSaneByte = pStream.length();
+				long lastSaneByte = 0;
 				
 				// 3 different states:
-				// 1) Not paranoid: Read AEO, resize accordingly.
-				// 2) Paranoid: Read AEO, resize by scanning from end if file size and AEO do NOT match. Size cannot be smaller than AEO.
-				// 3) Paranoid, ignore: Do not read AEO, resize by scanning from end.
+				//  1) Not paranoid: Read AEO, resize accordingly.
+				//  2) Paranoid: Read AEO, resize by scanning from end if file size and AEO do NOT match. Size cannot be smaller than AEO.
+				//  3) Paranoid, ignore: Do not read AEO, resize by scanning from end.
 				
-				if (pParanoid || !isPowerOfTwo(lastSaneByte)) { // Paranoia mode, read file from the end backwards
+				if (!pIgnoreAeo) {
+					/*	Java integers are big-endian.  However, the AEO is little-endian.
+						The Java NIO framework can convert endianness.
+						Therefore, read in the bytes needed, then use NIO to convert
+						the byte array into an int of the correct endianness.
+					*/
+					// Read AEO (which is little-endian)
+					pStream.seek(APPLICATION_END_OFFSET_OFFSET);
+					byte[] aeo = new byte[4];
+					pStream.readFully(aeo);
+				
+					// Tell Java the byte order is little-endian, and retrieve the resulting int
+					ByteBuffer bb = ByteBuffer.wrap(aeo);
+					bb.order(ByteOrder.LITTLE_ENDIAN);
+					lastSaneByte = bb.getInt();
+					bb = null;
+					aeo = null;
+				
+					System.out.println("Read the Application End Offset: " + lastSaneByte);
+					
+					// Check some of the file after the AEO to be sure it was correct
+					byte[] buffer = new byte[AEO_BUFFER];
+					pStream.seek(lastSaneByte);
+					pStream.read(buffer);
+					int offset = findLastSaneByte(buffer);
+					lastSaneByte += offset;
+					
+					if (offset == 0) {
+						System.out.println("AEO is correct.");
+					} else {
+						System.out.println("AEO is incorrect by " + offset + ", corrected to: " + lastSaneByte);
+						if (offset == WIFI_ENABLED_GAME_ADDITIONAL_OFFSET){
+							System.out.println("This is probably a wi-fi enabled game.");
+						}
+					}
+				}
+				
+				if (pParanoid) {
 					System.out.println("Scanning the file for dummy data...");
 					
 					long fileSize = pStream.length();
 					int bufferSize = PARANOIA_BUFFER;
+					long smallestAllowedSize = lastSaneByte;
 					
 					do {
 						fileSize -= bufferSize;
@@ -142,40 +185,11 @@ public class BitButcher {
 					lastSaneByte += fileSize;
 					
 					System.out.println("Found last sane byte: " + lastSaneByte);
-				} else { // Normal mode, read Application End Offset and trim according to that
-					/*	Java integers are big-endian.  However, the AEO is little-endian.
-						The Java NIO framework can convert endianness.
-						Therefore, read in the bytes needed, then use NIO to convert
-						the byte array into an int of the correct endianness.
-					*/
-					// Read AEO (which is little-endian)
-					pStream.seek(APPLICATION_END_OFFSET_OFFSET);
-					byte[] aeo = new byte[4];
-					pStream.readFully(aeo);
 					
-					// Tell Java the byte order is little-endian, and retrieve the resulting int
-					ByteBuffer bb = ByteBuffer.wrap(aeo);
-					bb.order(ByteOrder.LITTLE_ENDIAN);
-					lastSaneByte = bb.getInt();
-					bb = null;
-					aeo = null;
-					
-					System.out.println("Read the Application End Offset: " + lastSaneByte);
-					
-					// Check some of the file after the AEO to be sure it was correct
-					byte[] buffer = new byte[AEO_BUFFER];
-					pStream.seek(lastSaneByte);
-					pStream.read(buffer);
-					int offset = findLastSaneByte(buffer);
-					lastSaneByte += offset;
-					
-					if (offset == 0) {
-						System.out.println("AEO is correct.");
-					} else {
-						System.out.println("AEO is incorrect by " + offset + ", corrected to: " + lastSaneByte);
-						if (offset == WIFI_ENABLED_GAME_ADDITIONAL_OFFSET){
-							System.out.println("This is probably a wi-fi enabled game.");
-						}
+					if (lastSaneByte < smallestAllowedSize) {
+						System.out.println("The AEO suggests that the ROM is larger than what the paranoia check found.");
+						System.out.println("The last sane byte has been corrected to match the AEO: " + smallestAllowedSize);
+						lastSaneByte = smallestAllowedSize;
 					}
 				}
 				
