@@ -38,9 +38,9 @@ import java.util.HashSet;
 	the ROM playable.
 */
 public class BitButcher {
-	/** Minimum length of ones required to be deemed padding */
-	private static final int BUFFER = 1024 * 32; // 32KB
 	/** Amount to check after the Application End Offset (in case it is wrong) */
+	private static final int AEO_BUFFER = 1024 * 4; // 4KB
+	/** Amount of data to initially check when scanning from end of file */
 	private static final int PARANOIA_BUFFER = 1024 * 4; // 4KB
 	
 	private static final byte ALL_ZEROES = 0; // I know it's obvious, but the code becomes more clear
@@ -48,15 +48,10 @@ public class BitButcher {
 	
 	private static final int APPLICATION_END_OFFSET_OFFSET = 8 * 16; // I couldn't think of a better name
 	
-	/** Constants for naming files */
+	/** Constants for handling files */
 	private static final String INPUT_MODE = "rw"; // Read and write access to file
 	private static final String COMPRESSED_SUFFIX = " trim";
 	private static final String FILE_NAME_DELIMITER = ".";
-	
-	/** Constants for progress indication */
-	private static final String PROGRESS_INDICATOR = ".";
-	private static final int PROGRESS_INDICATOR_INTERVAL = 1024 * 1024; // 1MB
-	private static final int PROGRESS_INDICATOR_BREAK_INTERVAL = PROGRESS_INDICATOR_INTERVAL * 32; // 32MB
 	
 	
 	private static long pNumberOfChunks;
@@ -66,17 +61,22 @@ public class BitButcher {
 	
 	public static void main(final String[] args) {
 		if (args.length == 0) {
-			System.out.println("Usage: java BitButcher rom1 rom2 romN...");
+			System.out.println("Usage: java BitButcher [-p] rom1 rom2 romN...");
 		} else {
 			final HashSet<File> files = new HashSet<File>();
-		
-			// Create a list of unique, existing files from arguments
-			// Read in arguments and create File objects
-			for (String arg : args) {
-				File file = new File(arg);
 			
-				if (file.exists()) {
-					files.add(file);
+			// Check to see if any of the arguments are switches/options
+			// Otherwise assume they are files -- check to see if they exist
+			for (String arg : args) {
+				if (arg.equals("-p")) {
+					System.out.println("Running in Paranoia Mode..!");
+					pParanoid = true;
+				} else {
+					File file = new File(arg);
+			
+					if (file.exists()) {
+						files.add(file);
+					}
 				}
 			}
 		
@@ -105,18 +105,30 @@ public class BitButcher {
 				long lastSaneByte = pStream.length();
 				
 				if (pParanoid || !isPowerOfTwo(lastSaneByte)) { // Paranoia mode, read file from the end backwards
-					// Find number of chunks in file
-					pNumberOfChunks = (long) Math.ceil((double)lastSaneByte / (double)BUFFER);
-					//System.out.println("Total number of chunks: " + pNumberOfChunks);
+					System.out.println("Scanning the file for dummy data...");
 					
-					// Find the last sane byte!
-					lastSaneByte = findLastSaneByte(0l, pNumberOfChunks);
+					long fileSize = pStream.length();
+					int bufferSize = PARANOIA_BUFFER;
+					
+					do {
+						fileSize -= bufferSize;
+						
+						byte[] data = new byte[bufferSize];
+						pStream.seek(fileSize - bufferSize);
+						pStream.readFully(data);
+						
+						lastSaneByte = findLastSaneByte(data);
+						bufferSize *= 2;
+					} while (lastSaneByte == 0);
+					
+					lastSaneByte += fileSize;
+					
 					System.out.println("Found last sane byte: " + lastSaneByte);
 				} else { // Normal mode, read Application End Offset and trim according to that
 					/*	Java integers are big-endian.  However, the AEO is little-endian.
 						The Java NIO framework can convert endianness.
-						Therefore, read in the bytes needed, then use NIO to convert the byte array
-						into an int of the correct endianness.
+						Therefore, read in the bytes needed, then use NIO to convert
+						the byte array into an int of the correct endianness.
 					*/
 					// Read AEO (which is little-endian)
 					pStream.seek(APPLICATION_END_OFFSET_OFFSET);
@@ -133,10 +145,10 @@ public class BitButcher {
 					System.out.println("Read the Application End Offset: " + lastSaneByte);
 					
 					// Check some of the file after the AEO to be sure it was correct
-					byte[] buffer = new byte[PARANOIA_BUFFER];
+					byte[] buffer = new byte[AEO_BUFFER];
 					pStream.seek(lastSaneByte);
 					pStream.read(buffer);
-					int offset = deeplyScanForLastSaneByte(buffer);
+					int offset = findLastSaneByte(buffer);
 					lastSaneByte += offset;
 					
 					if (offset == 0) {
@@ -149,9 +161,9 @@ public class BitButcher {
 				difference = lastSaneByte - pStream.length();
 				
 				// Resize ROM
-				/*System.out.println("Resizing " + rom.getName() + ":");
+				System.out.println("Resizing " + rom.getName() + ":");
 				System.out.println("Previously: " + pStream.length() + ", Now: " + lastSaneByte + ", Difference: " + difference);
-				pStream.setLength(lastSaneByte);*/
+				pStream.setLength(lastSaneByte);
 				
 				// Close file handle
 				pStream.close();
@@ -171,56 +183,20 @@ public class BitButcher {
 		return difference;
 	}
 	
-	private static long findLastSaneByte(final long beginningChunk, final long endChunk) throws IOException {
-		long lastSaneByte;
+	/** Checks the passed byte to see if it is dummy data.
 		
-		if (beginningChunk == endChunk) {
-			// Holy snap, we've found the first chunk of ones.
-			//System.out.println("Found first chunk " + beginningChunk + " full of padding, deeply scanning " + (beginningChunk - 1) + "...");
-			
-			// If I'm going to trim to the byte, I'd minus one off of beginningChunk and scan from there (since the chunk found is all padding)
-			lastSaneByte = (beginningChunk - 1) * BUFFER;
-			
-			byte[] bytes = new byte[(int)(pStream.length() - lastSaneByte)];
-			pStream.seek(lastSaneByte);
-			pStream.read(bytes);
-			final int finalByteOffset = deeplyScanForLastSaneByte(bytes);
-			bytes = null;
-			
-			lastSaneByte = lastSaneByte + finalByteOffset;
-		} else {
-			// Work out what the middle chunk is
-			// The loss of precision is deliberate; it's a free floor (a.k.a. rounding down)
-			long middleChunk = beginningChunk + ((endChunk - beginningChunk) / 2);
-			
-			// Read in the middle chunk and
-			// check it to see if it is all dummy data or not
-			//System.out.println("Reading chunk " + middleChunk + " (low: " + beginningChunk + ", high: " + endChunk + ")");
-			
-			byte[] bytes = getCorrectSizeByteArray(middleChunk);
-			pStream.seek(middleChunk * BUFFER);
-			pStream.read(bytes);
-			final boolean allDummyData = isAllDummyData(bytes);
-			bytes = null;
-			
-			if (allDummyData) { // All ones, choose first half as active area
-				lastSaneByte = findLastSaneByte(beginningChunk, middleChunk);
-			} else { // Not all ones, choose the second half (minus the middle due to rounding down) as the active area
-				lastSaneByte = findLastSaneByte(middleChunk + 1, endChunk);
-			}
-		}
-		
-		return lastSaneByte;
-	}
-	
+		@arg data The byte to check
+		@return Whether the data is likely to be dummy or not
+	*/
 	private static boolean isDummyData(final byte data) {
 		return data == ALL_ONES || data == ALL_ZEROES;
 	}
 	
-	/**	Checks to see if the passed array is made up entirely of ones.
+	/**	Checks to see if the passed array is made up entirely of dummy data.
 		1 byte of ones = -1  --  bytes are signed!
 		
-	 	@return Whether the byte array is all made up of ones
+		@arg bytes The bytes to check through
+	 	@return Whether the byte array is completely made up of dummy data
 	*/
 	private static boolean isAllDummyData(final byte[] bytes) {
 		boolean allDummyData = true;
@@ -232,10 +208,12 @@ public class BitButcher {
 		return allDummyData;
 	}
 	
-	/**	
+	/**	Checks each byte in an attempt to find the exact byte where dummy data begins.
 		
+		@arg bytes The bytes to check through
+		@return The offset of the last byte that is not dummy data
 	*/
-	private static int deeplyScanForLastSaneByte(final byte[] bytes) {
+	private static int findLastSaneByte(final byte[] bytes) {
 		int lastSaneByte = 0;
 		
 		for (int i = 0; i < bytes.length; i++) {
@@ -248,27 +226,25 @@ public class BitButcher {
 		return lastSaneByte;
 	}
 	
-	private static boolean isLastChunk(final long chunk) {
-		return chunk == pNumberOfChunks - 1;
-	}
-	
-	private static byte[] getCorrectSizeByteArray(final long chunk) throws IOException {
-		// What happens if the last chunk is the size of the BUFFER?  0.  Snap.
-		//System.out.println("File size: " + pStream.length());
-		//System.out.println("Final chunk size: " + (int)(pStream.length() % BUFFER));
-		if (isLastChunk(chunk) && (pStream.length() % BUFFER) != 0) {
-			return new byte[(int)(pStream.length() % BUFFER)];
-		} else {
-			return new byte[BUFFER];
-		}
-	}
-	
+	/** Returns whether ot not the passed number is a power of two.
+		
+		@arg number The number to check
+		@return Whether or not the number os a power of two
+	*/
 	private static boolean isPowerOfTwo(final long number) {
-		return true; //TODO
+		long powerOfTwo = 1;
+		
+		while (number != powerOfTwo && powerOfTwo < number) {
+			//System.out.println(number + " == " + powerOfTwo + "?");
+			powerOfTwo *= 2;
+		}
+		
+		return number == powerOfTwo;
 	}
 	
 	/**	Chooses a new unique name similar to the passed file.
 		It's for testing really.
+		@arg oldFile A file reperesenting the old name to augment
 		@return A File representing a file that does not already exist
 	*/
 	private static File chooseNewFileName(File oldFile) throws IOException {
