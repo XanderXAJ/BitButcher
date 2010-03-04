@@ -48,6 +48,8 @@ public class BitButcher {
 	
 	private static final int APPLICATION_END_OFFSET_OFFSET = 8 * 16; // I couldn't think of a better name
 	
+	private static final int WIFI_ENABLED_GAME_ADDITIONAL_OFFSET = 136;
+	
 	/** Constants for handling files */
 	private static final String INPUT_MODE = "rw"; // Read and write access to file
 	private static final String COMPRESSED_SUFFIX = " trim";
@@ -104,6 +106,11 @@ public class BitButcher {
 				
 				long lastSaneByte = pStream.length();
 				
+				// 3 different states:
+				// 1) Not paranoid: Read AEO, resize accordingly.
+				// 2) Paranoid: Read AEO, resize by scanning from end if file size and AEO do NOT match. Size cannot be smaller than AEO.
+				// 3) Paranoid, ignore: Do not read AEO, resize by scanning from end.
+				
 				if (pParanoid || !isPowerOfTwo(lastSaneByte)) { // Paranoia mode, read file from the end backwards
 					System.out.println("Scanning the file for dummy data...");
 					
@@ -113,12 +120,23 @@ public class BitButcher {
 					do {
 						fileSize -= bufferSize;
 						
-						byte[] data = new byte[bufferSize];
-						pStream.seek(fileSize - bufferSize);
-						pStream.readFully(data);
+						byte[] bytes = new byte[bufferSize];
+						pStream.seek(fileSize);
+						pStream.readFully(bytes);
 						
-						lastSaneByte = findLastSaneByte(data);
-						bufferSize *= 2;
+						lastSaneByte = findLastSaneByte(bytes);
+						
+						System.out.println("Buffer size: " + bufferSize);
+						System.out.println("Last sane byte in buffer: " + lastSaneByte);
+						
+						bufferSize *= 2; // A logarithmic buffer seemed awesome at the time
+						
+						if (lastSaneByte != 0) {
+							for (int i = (int)lastSaneByte - 100; i < bytes.length; i++) {
+								System.out.print(bytes[i] + ",");
+							}
+							System.out.println();
+						}
 					} while (lastSaneByte == 0);
 					
 					lastSaneByte += fileSize;
@@ -155,6 +173,9 @@ public class BitButcher {
 						System.out.println("AEO is correct.");
 					} else {
 						System.out.println("AEO is incorrect by " + offset + ", corrected to: " + lastSaneByte);
+						if (offset == WIFI_ENABLED_GAME_ADDITIONAL_OFFSET){
+							System.out.println("This is probably a wi-fi enabled game.");
+						}
 					}
 				}
 				
@@ -216,9 +237,10 @@ public class BitButcher {
 	private static int findLastSaneByte(final byte[] bytes) {
 		int lastSaneByte = 0;
 		
-		for (int i = 0; i < bytes.length; i++) {
+		for (int i = bytes.length - 1; lastSaneByte == 0 && i >= 0; i--) {
 			if (!isDummyData(bytes[i])) {
 				// Add one, as the first byte of a chunk isn't the zeroth byte in the file, and so on
+				// Basically, file size is one-based, not zero-based
 				lastSaneByte = i + 1;
 			}
 		}
