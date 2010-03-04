@@ -173,13 +173,6 @@ public class BitButcher {
 						System.out.println("Last sane byte in buffer: " + lastSaneByte);
 						
 						bufferSize *= 2; // A logarithmic buffer seemed awesome at the time
-						
-						if (lastSaneByte != 0) {
-							for (int i = (int)lastSaneByte - 100; i < bytes.length; i++) {
-								System.out.print(bytes[i] + ",");
-							}
-							System.out.println();
-						}
 					} while (lastSaneByte == 0);
 					
 					lastSaneByte += fileSize;
