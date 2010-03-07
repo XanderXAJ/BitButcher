@@ -19,6 +19,9 @@ Usage:
 	This program modifies the original files, so make sure you have copies
 	just in case.
 	
+	BitButcher will only attempt to trim files that have the .nds file extension
+	(case-insensitive).  Using the -e option will remove this check.
+	
 	Unless you have a particular reason to do so, it is usually best to run
 	BitButcher with no options.
 
@@ -45,6 +48,9 @@ Options:
 	-i	Ignore AEO. Only useful with -p. Only use this if the ROM header is bad.
 		Forces BitButcher to ignore the AEO and just scan from the end of the file
 		for useful data.  ROM will be trimmed to the first point useful data is found.
+		
+	-e	Ignore file extensions.  As default, BitButcher ignores files that don't have
+		the .nds file extension.  This option removes that check.
 	
 FAQ:
 	Q: Where did the name come from?

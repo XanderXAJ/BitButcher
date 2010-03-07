@@ -60,8 +60,8 @@ public class BitButcher {
 	private static long pNumberOfChunks;
 	private static RandomAccessFile pStream;
 	private static boolean pParanoid = false;
-	private static boolean pIgnoreAeo = false;
-	private static boolean pIgnoreExt = false;
+	private static boolean pReadAeo = true;
+	private static boolean pExtensionMatters = true;
 	
 	
 	public static void main(final String[] args) {
@@ -82,20 +82,34 @@ public class BitButcher {
 						
 						if (argSet.contains("i")) {
 							System.out.println("Also ignoring the AEO..!");
-							pIgnoreAeo = true;
+							pReadAeo = false;
 						}
 					}
 					if (argSet.contains("e")) {
 						System.out.println("Ignoring file extensions...");
-						pIgnoreExt = true;
+						pExtensionMatters = false;
 					}
 				} else {
 					File file = new File(arg);
 					
-					//FIXME: Crashes if file names are 3 characters or shorter
-					String fileNameEnd = file.getName().substring(file.getName().length() - DS_ROM_EXTENSION.length());
+					/*	Check file name is valid
+						If extensions does not matter, file name is valid
+						Otherwise if extensions do matter:
+							If file name is too short, then file name is invalid
+							If file name is of adequate length, then:
+								if extension matches, file name is valid
+								if extension does not match, file name is invalid
+					*/
 					
-					if (!pIgnoreExt || fileNameEnd.equalsIgnoreCase(DS_ROM_EXTENSION) && file.exists()) {
+					boolean validFileName = !pExtensionMatters;
+					
+					if (pExtensionMatters) {
+						if (file.getName().length() >= DS_ROM_EXTENSION.length()) {
+							validFileName = file.getName().substring(file.getName().length() - DS_ROM_EXTENSION.length()).equalsIgnoreCase(DS_ROM_EXTENSION);
+						}
+					}
+					
+					if (validFileName && file.exists()) {
 						files.add(file);
 					}
 				}
@@ -134,7 +148,7 @@ public class BitButcher {
 				//  2) Paranoid: Read AEO, resize by scanning from end if file size and AEO do NOT match. Size cannot be smaller than AEO.
 				//  3) Paranoid, ignore: Do not read AEO, resize by scanning from end.
 				
-				if (!pIgnoreAeo) {
+				if (pReadAeo) {
 					/*	Java integers are big-endian.  However, the AEO is little-endian.
 						The Java NIO framework can convert endianness.
 						Therefore, read in the bytes needed, then use NIO to convert
@@ -204,13 +218,19 @@ public class BitButcher {
 					}
 				}
 				
-				difference = lastSaneByte - pStream.length();
+				if (lastSaneByte == 0) {
+					difference = lastSaneByte - pStream.length();
 				
-				// Resize ROM
-				System.out.println("Resizing " + rom.getName() + ":");
-				System.out.println("Previously: " + pStream.length() + ", Now: " + lastSaneByte + ", Difference: " + difference);
-				pStream.setLength(lastSaneByte);
-				
+					// Resize ROM
+					System.out.println("Resizing " + rom.getName() + ":");
+					System.out.println("Previously: " + pStream.length() + ", Now: " + lastSaneByte + ", Difference: " + difference);
+					pStream.setLength(lastSaneByte);
+				} else {
+					// Something has gone horribly wrong, do NOT attempt to trim
+					System.out.println("Something has gone wrong -- the last sane byte came back as zero.");
+					System.out.println("I will not touch the file as a result.");
+					difference = 0;
+				}
 				// Close file handle
 				pStream.close();
 				
