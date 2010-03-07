@@ -54,47 +54,65 @@ public class BitButcher {
 	private static final String INPUT_MODE = "rw"; // Read and write access to file
 	private static final String COMPRESSED_SUFFIX = " trim";
 	private static final String FILE_NAME_DELIMITER = ".";
+	private static final String DS_ROM_EXTENSION = ".nds";
 	
 	
 	private static long pNumberOfChunks;
 	private static RandomAccessFile pStream;
 	private static boolean pParanoid = false;
 	private static boolean pIgnoreAeo = false;
+	private static boolean pIgnoreExt = false;
 	
 	
 	public static void main(final String[] args) {
 		if (args.length == 0) {
-			System.out.println("Usage: java BitButcher [-pi] rom1 rom2 romN...");
+			System.out.println("Usage: java BitButcher [-pie] rom1 rom2 romN...");
 		} else {
 			final HashSet<File> files = new HashSet<File>();
 			
 			// Check to see if any of the arguments are switches/options
 			// Otherwise assume they are files -- check to see if they exist
 			for (String arg : args) {
-				if (arg.equals("-p")) {
-					System.out.println("Running in Paranoia Mode..!");
-					pParanoid = true;
-				} else if (arg.equals("-pi")) {
-					System.out.println("Running in Paranoia Mode, also ignoring the AEO..!");
-					pParanoid = true;
-					pIgnoreAeo = true;
+				if (arg.startsWith("-")) {
+					HashSet<String> argSet = ArgumentParser.parseArguments(arg);
+					
+					if (argSet.contains("p")) {
+						System.out.println("Running in Paranoia Mode..!");
+						pParanoid = true;
+						
+						if (argSet.contains("i")) {
+							System.out.println("Also ignoring the AEO..!");
+							pIgnoreAeo = true;
+						}
+					}
+					if (argSet.contains("e")) {
+						System.out.println("Ignoring file extensions...");
+						pIgnoreExt = true;
+					}
 				} else {
 					File file = new File(arg);
-			
-					if (file.exists()) {
+					
+					//FIXME: Crashes if file names are 3 characters or shorter
+					String fileNameEnd = file.getName().substring(file.getName().length() - DS_ROM_EXTENSION.length());
+					
+					if (!pIgnoreExt || fileNameEnd.equalsIgnoreCase(DS_ROM_EXTENSION) && file.exists()) {
 						files.add(file);
 					}
 				}
 			}
 		
 			// Trim each file
-			long totalDifference = 0l;
-			for (File file : files) {
-				totalDifference = totalDifference + trimRom(file);
-			}
+			if (files.size() != 0) {
+				long totalDifference = 0l;
+				for (File file : files) {
+					totalDifference = totalDifference + trimRom(file);
+				}
 		
-			// Output total difference made
-			System.out.println("Total difference: " + totalDifference);
+				// Output total difference made
+				System.out.println("Total difference: " + totalDifference);
+			} else {
+				System.out.println("... I need something to trim, you know!");
+			}
 		}
 	}
 	
