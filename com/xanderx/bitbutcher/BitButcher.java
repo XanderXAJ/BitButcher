@@ -66,7 +66,7 @@ public class BitButcher {
 	
 	public static void main(final String[] args) {
 		if (args.length == 0) {
-			System.out.println("Usage: java BitButcher [-pie] rom1 rom2 romN...");
+			System.out.println("Usage: java BitButcher [-eip] rom1 rom2 romN...");
 		} else {
 			final HashSet<File> files = new HashSet<File>();
 			
@@ -105,7 +105,8 @@ public class BitButcher {
 					
 					if (pExtensionMatters) {
 						if (file.getName().length() >= DS_ROM_EXTENSION.length()) {
-							validFileName = file.getName().substring(file.getName().length() - DS_ROM_EXTENSION.length()).equalsIgnoreCase(DS_ROM_EXTENSION);
+							String fileNameEnd = file.getName().substring(file.getName().length() - DS_ROM_EXTENSION.length());
+							validFileName = fileNameEnd.equalsIgnoreCase(DS_ROM_EXTENSION);
 						}
 					}
 					

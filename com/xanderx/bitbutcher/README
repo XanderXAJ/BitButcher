@@ -41,17 +41,17 @@ Terms:
 		will help out here.
 
 Options:
+	-e	Ignore file extensions.  As default, BitButcher ignores files that don't have
+		the .nds file extension.  This option removes that check.
+	
+	-i	Ignore AEO. Only useful with -p. Only use this if the ROM header is bad.
+		Forces BitButcher to ignore the AEO and just scan from the end of the file
+		for useful data.  ROM will be trimmed to the first point useful data is found.
+	
 	-p	Paranoid.  Makes BitButcher scan from the end of the file to verify no
 		useful data will be removed.  ROM will be trimmed to the first point
 		useful data is found or to the size specified in the AEO, whichever is larger.
 		
-	-i	Ignore AEO. Only useful with -p. Only use this if the ROM header is bad.
-		Forces BitButcher to ignore the AEO and just scan from the end of the file
-		for useful data.  ROM will be trimmed to the first point useful data is found.
-		
-	-e	Ignore file extensions.  As default, BitButcher ignores files that don't have
-		the .nds file extension.  This option removes that check.
-	
 FAQ:
 	Q: Where did the name come from?
 	A: A friend suggested that I rename the program (which was originally just
