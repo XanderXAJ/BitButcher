@@ -219,7 +219,7 @@ public class BitButcher {
 					}
 				}
 				
-				if (lastSaneByte != 0) {
+				if (lastSaneByte > 0) {
 					difference = lastSaneByte - pStream.length();
 				
 					// Resize ROM
