@@ -1,5 +1,5 @@
-echo $_
+echo "Compiling BitButcher..."
 javac src/com/xanderx/bitbutcher/*.java
-jar cfm bin/BitButcher.jar etc/manifest src/com/xanderx/bitbutcher/*.class
-
+echo "Making JAR..."
+jar cfm bin/BitButcher.jar etc/manifest -C src com
 
